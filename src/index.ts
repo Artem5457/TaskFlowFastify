@@ -1,14 +1,16 @@
+import 'dotenv/config';
 import { buildServer } from './server.js';
 
 const server = buildServer();
 
 const bootstrap = async () => {
   try {
-    await server.listen({ port: 3000 });
+    await server.ready();
+
+    const { port } = server.config;
+    await server.listen({ port });
   } catch (err) {
-    server.log.fatal(
-      `Failed to start the application. Reason: ${err instanceof Error ? err.message : String(err)}`
-    );
+    server.log.fatal({ err }, 'Failed to start the application');
     process.exit(1);
   }
 };
