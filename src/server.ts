@@ -1,4 +1,6 @@
 import Fastify from 'fastify';
+import configPlugin from './env-config/config.plugin';
+import dbPlugin from './database/database.plugin';
 
 export function buildServer() {
   const fastify = Fastify({
@@ -15,7 +17,8 @@ export function buildServer() {
     disableRequestLogging: true,
   });
 
-  fastify.get('/', async () => ({ hello: 'world' }));
+  fastify.register(configPlugin);
+  fastify.register(dbPlugin);
 
   return fastify;
 }
