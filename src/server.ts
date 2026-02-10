@@ -1,8 +1,12 @@
 import Fastify from 'fastify';
+import sensiblePlugin from '@fastify/sensible';
+import cookiePlugin from '@fastify/cookie';
 import configPlugin from './env-config/config.plugin';
 import dbPlugin from './database/database.plugin';
+import authPlugin from './auth/auth.plugin';
+import { errorHandler } from './shared/utils/error-handler.plugin';
 
-export function buildServer() {
+export async function buildServer() {
   const fastify = Fastify({
     logger: {
       level: 'info',
@@ -14,11 +18,19 @@ export function buildServer() {
         },
       },
     },
-    disableRequestLogging: true,
+    // disableRequestLogging: true,
   });
 
   fastify.register(configPlugin);
-  fastify.register(dbPlugin);
+  await fastify.register(dbPlugin);
+  fastify.register(sensiblePlugin);
+  fastify.register(cookiePlugin, {
+    secret: fastify.config.cookieSecret,
+    hook: 'onRequest',
+  });
+
+  errorHandler(fastify);
+  await fastify.register(authPlugin);
 
   return fastify;
 }

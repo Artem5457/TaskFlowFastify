@@ -19,4 +19,11 @@ declare module 'fastify' {
       RefreshToken: typeof RefreshToken;
     };
   }
+
+  interface FastifyRequest {
+    user?: {
+      id: string;
+      email: string;
+    };
+  }
 }
