@@ -8,9 +8,11 @@ import {
   RegisterResBody,
 } from './auth.interfaces';
 import { AuthController } from './auth.controller';
+import { TokenService } from '../shared/services/token.service';
 
 export default function (fastify: FastifyInstance) {
-  const authService = new AuthService(fastify);
+  const tokenService = new TokenService(fastify);
+  const authService = new AuthService(fastify, tokenService);
   const authController = new AuthController(authService);
 
   fastify.post<{ Body: RegisterReqBody; Reply: RegisterResBody }>(
