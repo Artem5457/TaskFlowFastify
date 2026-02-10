@@ -1,7 +1,5 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import bcrypt from 'bcrypt';
-import crypto from 'crypto';
-import User from '../database/models/user.model';
 import {
   IAuthPayload,
   LoginReqBody,
@@ -10,7 +8,8 @@ import {
 } from './auth.interfaces';
 import { UniqueConstraintError } from 'sequelize';
 import { calcExpirationDate, calcMillisecondsInDays } from '../shared/helpers';
-import RefreshToken from '../database/models/refresh-token.model';
+import { TokenService } from '../shared/services/token.service';
+import User from '../database/models/user.model';
 
 interface IJwtPayload {
   id: string;
@@ -18,13 +17,16 @@ interface IJwtPayload {
 }
 
 export class AuthService {
-  constructor(private fastify: FastifyInstance) {}
+  constructor(
+    private fastify: FastifyInstance,
+    private tokenService: TokenService
+  ) {}
 
   async registerUser(data: RegisterReqBody): Promise<User> {
     const hash = await this.hashPassword(data.password);
 
     try {
-      const user = await User.create({
+      const user = await this.fastify.models.User.create({
         name: data.name,
         lastName: data.lastName,
         email: data.email,
@@ -180,14 +182,17 @@ export class AuthService {
   ): Promise<void> {
     const { refreshTokenDaysValid } = this.fastify.config;
 
-    const refreshTokenHash = this.hashToken(refreshToken);
+    const refreshTokenHash = this.tokenService.hashToken(refreshToken);
     const expiresAt = calcExpirationDate(
       calcMillisecondsInDays(refreshTokenDaysValid)
     );
 
     await this.fastify.sequelize.transaction(async (t) => {
-      await RefreshToken.destroy({ where: { userId }, transaction: t });
-      await RefreshToken.create(
+      await this.fastify.models.RefreshToken.destroy({
+        where: { userId },
+        transaction: t,
+      });
+      await this.fastify.models.RefreshToken.create(
         { userId, token: refreshTokenHash, expiresAt },
         { transaction: t }
       );
@@ -204,14 +209,17 @@ export class AuthService {
       throw this.fastify.httpErrors.unauthorized('Invalid refresh token');
     }
 
-    const storedToken = await RefreshToken.findOne({
+    const storedToken = await this.fastify.models.RefreshToken.findOne({
       where: { userId: payload.id },
     });
     if (!storedToken) {
       throw this.fastify.httpErrors.unauthorized('Refresh token not found');
     }
 
-    const valid = this.verifyToken(refreshToken, storedToken.token);
+    const valid = this.tokenService.verifyToken(
+      refreshToken,
+      storedToken.token
+    );
     if (!valid) {
       throw this.fastify.httpErrors.unauthorized('Refresh token mismatch');
     }
@@ -225,8 +233,10 @@ export class AuthService {
   }
 
   private async revokeRefreshToken(refreshToken: string): Promise<void> {
-    const tokenHash = this.hashToken(refreshToken);
-    await RefreshToken.destroy({ where: { token: tokenHash } });
+    const tokenHash = this.tokenService.hashToken(refreshToken);
+    await this.fastify.models.RefreshToken.destroy({
+      where: { token: tokenHash },
+    });
   }
 
   private generateAccessToken(payload: IJwtPayload) {
@@ -262,21 +272,5 @@ export class AuthService {
     hash: string
   ): Promise<boolean> {
     return bcrypt.compare(password, hash);
-  }
-
-  private hashToken(token: string) {
-    const { hmacSecret } = this.fastify.config;
-    const key = Buffer.from(hmacSecret, 'base64');
-
-    return crypto.createHmac('sha256', key).update(token).digest('hex');
-  }
-
-  private verifyToken(token: string, tokenHash: string): boolean {
-    const hashedToken = this.hashToken(token);
-
-    return crypto.timingSafeEqual(
-      Buffer.from(hashedToken, 'hex'),
-      Buffer.from(tokenHash, 'hex')
-    );
   }
 }

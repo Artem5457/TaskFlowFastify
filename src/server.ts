@@ -4,6 +4,7 @@ import cookiePlugin from '@fastify/cookie';
 import configPlugin from './env-config/config.plugin';
 import dbPlugin from './database/database.plugin';
 import authPlugin from './auth/auth.plugin';
+import organizationRoutes from './organization/organization.routes';
 import { errorHandler } from './shared/utils/error-handler.plugin';
 
 export async function buildServer() {
@@ -30,7 +31,10 @@ export async function buildServer() {
   });
 
   errorHandler(fastify);
+
+  // Routes
   await fastify.register(authPlugin);
+  fastify.register(organizationRoutes, { prefix: '/api/organizations' });
 
   return fastify;
 }
