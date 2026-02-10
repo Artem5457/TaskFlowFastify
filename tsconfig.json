@@ -10,7 +10,8 @@
       "@organization/*": ["organization/*"],
       "@team/*": ["team/*"],
       "@database/*": ["database/*"],
-      "@auth/*": ["auth/*"]
+      "@auth/*": ["auth/*"],
+      "@envs/*": ["env-config/*"]
     },
     "rootDir": "./src",
     "outDir": "./dist",

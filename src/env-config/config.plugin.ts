@@ -11,12 +11,12 @@ const getConfigValueOrThrow = (key: string, defaultValue?: string): string => {
 };
 
 const getConfig = (): IConfig => ({
-  nodeEnv: getConfigValueOrThrow(envVars.NODE_ENV),
+  nodeEnv: getConfigValueOrThrow(envVars.NODE_ENV, 'development'),
   dbName: getConfigValueOrThrow(envVars.DB_NAME),
   dbUsername: getConfigValueOrThrow(envVars.DB_USERNAME),
   dbPassword: getConfigValueOrThrow(envVars.DB_PASSWORD),
   dbHost: getConfigValueOrThrow(envVars.DB_HOST),
-  port: Number(getConfigValueOrThrow(envVars.PORT)),
+  port: Number(getConfigValueOrThrow(envVars.PORT, '3000')),
   accessTokenSecret: getConfigValueOrThrow(envVars.ACCESS_TOKEN_SECRET),
   refreshTokenSecret: getConfigValueOrThrow(envVars.REFRESH_TOKEN_SECRET),
   accessTokenExpiresIn: getConfigValueOrThrow(envVars.ACCESS_TOKEN_EXPIRES_IN),
@@ -31,9 +31,14 @@ const getConfig = (): IConfig => ({
   invitationTokenDaysValid: Number(
     getConfigValueOrThrow(envVars.INVITATION_TOKEN_DAYS_VALID)
   ),
+  salt: Number(getConfigValueOrThrow(envVars.SALT)),
+  cookieSecret: getConfigValueOrThrow(envVars.COOKIE_SECRET),
 });
 
-export default fp(async (fastify) => {
-  const config = getConfig();
-  fastify.decorate('config', config);
-});
+export default fp(
+  async (fastify) => {
+    const config = getConfig();
+    fastify.decorate('config', config);
+  },
+  { name: 'configPlugin' }
+);

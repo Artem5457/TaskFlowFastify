@@ -2,14 +2,14 @@ import 'dotenv/config';
 import { buildServer } from './server.js';
 import { setupShutdown } from './shared/utils/shutdown.js';
 
-const server = buildServer();
-
 const bootstrap = async () => {
+  const server = await buildServer();
+
   try {
     await server.ready();
 
     const { port } = server.config;
-    await server.listen({ port });
+    await server.listen({ port, host: 'localhost' });
 
     setupShutdown(server);
   } catch (err) {
